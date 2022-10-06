@@ -15,6 +15,15 @@ export const handler = middy(
       const payload: UpdateTodoRequest = JSON.parse(event.body)
       const updatedTodo = await updateTodo(payload, todoId, userId)
 
+      if (payload.name === '' || payload.dueDate === '') {
+        return {
+          statusCode: STATUS_CODES.BAD_REQUEST,
+          body: JSON.stringify({
+            message: "Invalid request body"
+          })
+        }
+      }
+
       return {
         statusCode: STATUS_CODES.OK,
         body: JSON.stringify({

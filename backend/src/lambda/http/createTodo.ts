@@ -14,6 +14,15 @@ export const handler = middy(
       const userId = getUserId(event)
       const todoItem = await createTodo(payload, userId)
 
+      if (payload.name === '' || payload.dueDate === '') {
+        return {
+          statusCode: STATUS_CODES.BAD_REQUEST,
+          body: JSON.stringify({
+            message: "Invalid request body"
+          })
+        }
+      }
+
       return {
         statusCode: STATUS_CODES.CREATED,
         body: JSON.stringify({

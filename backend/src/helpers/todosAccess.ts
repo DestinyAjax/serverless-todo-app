@@ -1,11 +1,13 @@
 import * as uuid from 'uuid'
-import { DocumentClient } from 'aws-sdk/clients/dynamodb'
+import * as AWSXRay from 'aws-xray-sdk'
+import * as AWS from 'aws-sdk'
 import { createLogger } from '../utils/logger'
 import { TodoItem } from '../models/TodoItem';
 import { TodoUpdate } from '../models/TodoUpdate';
 
+const XAWS = AWSXRay.captureAWS(AWS)
 const logger = createLogger('TodosAccess')
-const clientDoc = new DocumentClient()
+const clientDoc = new XAWS.DynamoDB.DocumentClient()
 const todosTable = process.env.TODOS_TABLE
 const userIdIndex = process.env.TODOS_CREATED_AT_INDEX
 const bucketName = process.env.ATTACHMENT_S3_BUCKET

@@ -7,6 +7,41 @@ plugins:
   - "serverless-webpack"
   - "serverless-iam-roles-per-function"
   - "serverless-reqvalidator-plugin"
+  - "serverless-aws-documentation"
+
+custom:
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: API Documentation for Serverless Todo
+        description: Documentation
+    models:
+      - name: CreateTodoValidation
+        contentType: "application/json"
+        schema: 
+          required: 
+            - name
+            - dueDate
+          properties:
+            name:
+              type: string
+            dueDate:
+              type: string
+      - name: UpdateTodoValidation
+        contentType: "application/json"
+        schema:
+          required: 
+            - name
+            - dueDate
+            - done
+          properties:
+            name:
+              type: string
+            dueDate:
+              type: string
+            done:
+              type: boolean
 
 provider:
   name: aws
@@ -18,7 +53,7 @@ provider:
   environment:
     TODOS_TABLE: Todos-${self:provider.stage}
     TODOS_CREATED_AT_INDEX: CreatedAtIndex
-    ATTACHMENT_S3_BUCKET: ${self:service}-${self:provider.stage}-images-bucket
+    ATTACHMENT_S3_BUCKET: ${self:service}-${self:provider.stage}-images-6fecd7-bucket
     SIGNED_URL_EXPIRATION: 300
     AUTH_0_SECRET_ID: Auth0Secret-${self:provider.stage}
     AUTH_0_SECRET_FIELD: auth0Secret
@@ -78,14 +113,15 @@ functions:
     handler: src/lambda/http/createTodo.handler
     events:
       - http:
-          method: post
           path: todos
+          method: post
           cors: true
           authorizer:
             name: Auth
-          request:
-            schemas:
-              application/json: ${file(models/create-todo-model.json)}
+          reqValidatorName: onlyBody
+          documentation:
+            requestModels: 
+              "application/json": CreateTodoValidation
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
@@ -104,9 +140,10 @@ functions:
           cors: true
           authorizer:
             name: Auth
-          request:
-            schemas:
-              application/json: ${file(models/update-todo-model.json)}
+          reqValidatorName: onlyBody
+          documentation:
+            requestModels: 
+              "application/json": UpdateTodoValidation
     iamRoleStatementsInherit: true
     iamRoleStatements:
       - Effect: Allow
@@ -178,7 +215,7 @@ resources:
             Projection:
               ProjectionType: ALL
 
-    AttachmentsBucket:
+    ServerlessTodoAppUdacityAjaxBucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
@@ -200,10 +237,19 @@ resources:
     BucketPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
-        Bucket: !Ref AttachmentsBucket
+        Bucket: !Ref ServerlessTodoAppUdacityAjaxBucket
         PolicyDocument:
           Statement:
             - Effect: Allow
               Principal: '*'
               Action: 's3:GetObject'
               Resource: "arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*"
+
+    onlyBody:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'only-body'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
